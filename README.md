@@ -43,4 +43,4 @@ combat hardsuit control and targeting board
 {'TECH_MATERIAL': [6, 4375], 'TECH_ENGINEERING': [7, 21625], 'TECH_MAGNET': [6, 3125], 'TECH_PHORON': [4, 125], 'TECH_POWER': [7, 20250], 'TECH_BIO': [6, 3125], 'TECH_BLUESPACE': [4, 125], 'TECH_COMBAT': [7, 32000], 'TECH_DATA': [8, 256175], 'TECH_ARCANE': [0, 0], 'TECH_ILLEGAL': [0, 0]}
 ```
 
-You can adjust the prohibited techs or do whatever. Or make my fitness function actually good, it's not amazing right now but it works roughly
+You can adjust the materials, the blacklisted items (some items show up even though they aren't buildable). Or make my fitness function actually good, it's not amazing right now but it works roughly
