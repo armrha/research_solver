@@ -1,3 +1,4 @@
+from pprint import pprint
 from copy import deepcopy
 import re
 import os
@@ -201,6 +202,12 @@ def printable_collection(sources_orig, designs_orig, mat_restriction=None):
 def reset_levels():
     return { 'TECH_MATERIAL': [3, 0] , 'TECH_ENGINEERING': [3, 0], 'TECH_MAGNET': [3, 0], 'TECH_PHORON': [3, 0], 'TECH_POWER': [3, 0], 'TECH_BIO': [3, 0], 'TECH_BLUESPACE': [3, 0], 'TECH_COMBAT': [3, 0], 'TECH_DATA': [3, 0], 'TECH_ARCANE': [0, 0], 'TECH_ILLEGAL': [0, 0]}
 
+def display_changes(prior_levels, levels):
+    ret = ""
+    for item in levels:
+        if levels[item][0] > prior_levels[item][0]:
+            ret += f"{item}: \u001b[31;1m{prior_levels[item][0]}\u001b[34;1m->\u001b[32;1m{levels[item][0]}\u001b[0m "
+    return ret
 
 def solve_research(path):
     levels = reset_levels()
@@ -253,26 +260,28 @@ def solve_research(path):
 
     #TODO: Add autolathe designs, just in case...
 
-    print("Without mat restrictions (all mats allowed)")
+    print("\u001b[32;1mWith no mat restrictions (all mats)\u001b[0m")
     increasing = 1
     while increasing:
         last_value = increasing
         winner, points = calculate_winner(printable_designs, levels)
+        prior_levels = levels
         levels = deconstruct_item( points, levels )
-        print(winner['name'])
+        print(f"{winner['name']} ({display_changes(prior_levels, levels)})")
         increasing = sum([v[0] for v in levels.values()])
         if last_value == increasing:
             #Probably done
             increasing = None
     levels = reset_levels()
     printable_designs = printable_collection(sources, designs, ['DEFAULT_WALL_MATERIAL','MATERIAL_GLASS','MATERIAL_STEEL'])
-    print("With default mats... (steel / glass)")
+    print("\u001b[32;1mWith default mats... (steel / glass)\u001b[0m")
     increasing = 1
     while increasing:
         last_value = increasing
+        prior_levels = levels
         winner, points = calculate_winner(printable_designs, levels)
         levels = deconstruct_item( points, levels )
-        print(winner['name'])
+        print(f"{winner['name']} ({display_changes(prior_levels, levels)})")
         increasing = sum([v[0] for v in levels.values()])
         if last_value == increasing:
             #Probably done
