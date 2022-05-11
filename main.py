@@ -253,7 +253,7 @@ def solve_research(path):
 
     #TODO: Add autolathe designs, just in case...
 
-    print("Without mats...")
+    print("Without mat restrictions (all mats allowed)")
     increasing = 1
     while increasing:
         last_value = increasing
