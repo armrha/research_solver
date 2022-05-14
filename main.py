@@ -106,58 +106,81 @@ def materials_recurse(designs, item):
         return None
 
 def calculate_winner(printable_designs, levels):
-    score = 0
+    won_by = ""
     current_winner = None
+    last_machine = "circuit_printer"
     winning_points = {'TECH_MATERIAL': 0, 'TECH_ENGINEERING': 0, 'TECH_MAGNET': 0, 'TECH_PHORON': 0,
                            'TECH_POWER': 0, 'TECH_BIO': 0, 'TECH_BLUESPACE': 0, 'TECH_COMBAT': 0, 'TECH_DATA': 0,
                            'TECH_ARCANE': 0, 'TECH_ILLEGAL': 0}
     for design in printable_designs:
         buildable = 1
+
         points_for_item = {'TECH_MATERIAL': 0, 'TECH_ENGINEERING': 0, 'TECH_MAGNET': 0, 'TECH_PHORON': 0,
                            'TECH_POWER': 0, 'TECH_BIO': 0, 'TECH_BLUESPACE': 0, 'TECH_COMBAT': 0, 'TECH_DATA': 0,
                            'TECH_ARCANE': 0, 'TECH_ILLEGAL': 0}
         for tech in design['req_tech']:
             if design['req_tech'][tech] > levels[tech][0]:
                 #Disqualified from competition
+                #if (design['name'] == 'combat hardsuit control and targeting board'):
+                    #print(f"Current winner: {current_winner}")
+                    #print(f"Proposed competitor: {design}")
+                    #print(f"Tech {tech}")
+                    #print(f"REQ_TECH? {design['req_tech'][tech]} ")
+                    #print(f"CURRENT_TECH?: {levels[tech][0]}")
+                    #print(f"DEBUG_LEVELS: {levels}")
+                    #print("Hardsuit control and targeting...")
+                    #print(levels[tech][0])
                 buildable = 0
         if buildable == 1:
-            for tech in design['origin_tech']:
-                points_for_item[tech] = 5 ** design['origin_tech'][tech]
-            contender_levels = deconstruct_item(points_for_item, levels)
-            champion_levels = deconstruct_item(winning_points, levels)
-            #Prioritize largest spread of levels per item
-            contender = 0
-            champion = 0
-            for tech_adv in contender_levels:
-                if contender_levels[tech_adv][0] > levels[tech_adv][0]:
-                    contender += 1
-            for tech_adv in champion_levels:
-                if champion_levels[tech_adv][0] > levels[tech_adv][0]:
-                    champion += 1
-            if(contender == champion):
-                #No reach difference, so let's go by total levels
-                contender = sum([v[0] for v in contender_levels.values()])
-                champion = sum([v[0] for v in champion_levels.values()])
-            if(contender == champion):
-                #Tied! Check which gives the most points across variety... maybe not worth it
+                for tech in design['origin_tech']:
+                    points_for_item[tech] = 5 ** design['origin_tech'][tech]
+                contender_levels = deconstruct_item(points_for_item, levels)
+                champion_levels = deconstruct_item(winning_points, levels)
+                #Prioritize largest spread of levels per item
                 contender = 0
                 champion = 0
-                for techname in  contender_levels:
-                    if contender_levels[techname][1] > levels[techname][1]:
-                        if contender_levels[techname][0] == (levels[techname][0] -1):
+                for tech_adv in contender_levels:
+                    if contender_levels[tech_adv][0] > levels[tech_adv][0]:
+                        contender += 1
+                for tech_adv in champion_levels:
+                    if champion_levels[tech_adv][0] > levels[tech_adv][0]:
+                        champion += 1
+                won_by = f"contender_levels {contender} {champion}"
+                if contender == champion:
+                    if design['machine'] == 'portable':
+                        contender += 2
+                    else:
+                        if design['machine'] != last_machine:
                             contender += 1
-                for techname in  champion_levels:
-                    if champion_levels[techname][1] > levels[techname][1]:
-                        if champion_levels[techname][0] == (levels[techname][0] - 1):
-                            champion += 1
-            if(contender == champion):
-                #Tied! Check which gives the most total points
-                contender = sum([v[1] for v in contender_levels.values()])
-                champion = sum([v[1] for v in champion_levels.values()])
+                if contender == champion:
+                    #No reach difference, so let's go by total levels
+                    contender = sum([v[0] for v in contender_levels.values()])
+                    champion = sum([v[0] for v in champion_levels.values()])
+                    won_by = "total_levels"
+                if(contender == champion):
+                    #Tied! Check which gives the most points across variety... maybe not worth it
+                    contender = 0
+                    champion = 0
+                    for techname in  contender_levels:
+                        if contender_levels[techname][1] > levels[techname][1]:
+                            if contender_levels[techname][0] == (levels[techname][0] -1):
+                                contender += 1
+                    for techname in  champion_levels:
+                        if champion_levels[techname][1] > levels[techname][1]:
+                            if champion_levels[techname][0] == (levels[techname][0] - 1):
+                                champion += 1
+                    won_by = "points_variety"
+                if(contender == champion):
+                    #Tied! Check which gives the most total points
+                    contender = sum([v[1] for v in contender_levels.values()])
+                    champion = sum([v[1] for v in champion_levels.values()])
+                    won_by = "points_total"
 
-            if(contender > champion):
-                current_winner = design
-                winning_points = points_for_item
+                if(contender > champion):
+                    current_winner = design
+                    winning_points = points_for_item
+                    last_machine = design['machine']
+    #print(won_by)
     return current_winner, winning_points
 
 def printable_collection(sources_orig, designs_orig, mat_restriction=None):
@@ -171,11 +194,16 @@ def printable_collection(sources_orig, designs_orig, mat_restriction=None):
     designs = deepcopy(designs_orig)
     for item in designs:
         if 'build_path' in designs[item]:
+            if "/datum/design/circuit" in item:
+                machine = "circuit_printer"
+            else:
+                machine = "protolathe"
             datum = designs[item]['build_path']
             datum = datum.lower()
             if datum in sources:
                 #If there's no req tech, probably just a materials def, ignore it for now
                 if 'req_tech' in designs[item]:
+                    sources[datum]['machine'] = machine
                     sources[datum]['req_tech'] = designs[item]['req_tech']
                     if 'name' in sources[datum] and sources[datum]['name'] not in blacklist:
                         if 'mechfab' not in item:
@@ -194,9 +222,11 @@ def printable_collection(sources_orig, designs_orig, mat_restriction=None):
     for item in sources:
         if 'integrated' in item:
             sources[item]['req_tech'] = printer_req_tech
+            sources[item]['machine'] = "portable"
             #Don't add bogus items...
             if 'name' in sources[item] and sources[item]['name'] not in blacklist:
                 printable_designs.append(sources[item])
+    #print(printable_designs)
     return printable_designs
 
 def reset_levels():
@@ -275,21 +305,21 @@ def solve_research(path):
     levels = reset_levels()
     printable_designs = printable_collection(sources, designs, ['DEFAULT_WALL_MATERIAL','MATERIAL_GLASS','MATERIAL_STEEL'])
     print("\u001b[32;1mWith default mats... (steel / glass)\u001b[0m")
-    increasing = 1
+    increasing = 3
     while increasing:
         last_value = increasing
         prior_levels = levels
         winner, points = calculate_winner(printable_designs, levels)
         levels = deconstruct_item( points, levels )
-        print(f"{winner['name']} ({display_changes(prior_levels, levels)})")
+        print(f"{winner['name']}  {winner['machine']} ({display_changes(prior_levels, levels)})")
         increasing = sum([v[0] for v in levels.values()])
         if last_value == increasing:
-            #Probably done
+            #Probably done...
             increasing = None
 
     print(levels)
 
 if __name__ == '__main__':
     ##Replace with your aurora git directory
-    path = "D:\\aurorastation\\"
+    path = "C:\\Users\\armrha\\Desktop\\Desktop\\aurora4\\aurorastation\\"
     solve_research(path)
